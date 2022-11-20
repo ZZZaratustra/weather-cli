@@ -3,7 +3,7 @@ import { getArgs } from './helpers/args.js'
 import { getWeather } from './services/api.service.js'
 import { printHelp, printError, printSuccess } from './services/log.service.js'
 import { saveKeyValue, TOKEN_DICTIONARY } from './services/storage.service.js'
-
+import * as dotenv from 'dotenv'
 const saveToken = async (token) => {
     if (!token.length) {
         printError('Не передан токен')
@@ -19,9 +19,11 @@ const saveToken = async (token) => {
 }
 const getForcast = async () => {
     try {
-        const weather = await getWeather('Санкт-Петербург', '89fc46fa491b609d5b0ecaf99169c45f')
+        dotenv.config()
+        const weather = await getWeather(process.env.CITY, process.env.TOKEN)
         console.log(weather)
-    } catch (env) {
+        // console.log("process.env.CITY *//*:",process.env.CITY ,process.env.TOKEN)
+    } catch (e) {
         if (e?.responce?.status == 404) {
             printError('Неверно указан город')
         } else if (e?.responce?.status == 401) {
