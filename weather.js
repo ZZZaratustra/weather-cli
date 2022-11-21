@@ -1,9 +1,9 @@
 #!/user/bin/env node
 import { getArgs } from './helpers/args.js'
-import { getWeather } from './services/api.service.js'
-import { printHelp, printError, printSuccess } from './services/log.service.js'
-import { saveKeyValue, TOKEN_DICTIONARY } from './services/storage.service.js'
-import * as dotenv from 'dotenv'
+import { getIcon, getWeather } from './services/api.service.js'
+import { printHelp, printError, printSuccess, printWeather } from './services/log.service.js'
+import { saveKeyValue, TOKEN_DICTIONARY, getKeyValue } from './services/storage.service.js'
+
 const saveToken = async (token) => {
     if (!token.length) {
         printError('Не передан токен')
@@ -17,19 +17,35 @@ const saveToken = async (token) => {
     }
 
 }
+
+const saveCity = async (city) => {
+    if (!city.length) {
+        printError('Не передан город')
+        return
+    }
+    try{
+        await saveKeyValue(TOKEN_DICTIONARY.city, city)
+        printSuccess('Город сохранён')
+    } catch (e) {
+        printError('Город не сохранён', e.message)
+    }
+
+}
+
 const getForcast = async () => {
     try {
-        dotenv.config()
-        const weather = await getWeather(process.env.CITY, process.env.TOKEN)
-        console.log(weather)
-        // console.log("process.env.CITY *//*:",process.env.CITY ,process.env.TOKEN)
+        const city = process.env.CITY ?? await getKeyValue(TOKEN_DICTIONARY.city)
+        const weather = await getWeather(city)
+        printWeather(weather, getIcon(weather.weather[0].icon))
     } catch (e) {
-        if (e?.responce?.status == 404) {
+        if (e?.response?.status == 404) {
             printError('Неверно указан город')
-        } else if (e?.responce?.status == 401) {
+        } else if (e?.response?.status == 401) {
             printError('Неверно указан ТОКЕН')
+        } else if (e?.response?.status == 400) {
+            printError('Неверно указан город или токен')
         } else {
-            printError('e.message')
+            printError(e.message)
         }
     }
 }
@@ -39,20 +55,16 @@ const initCLI = () => {
     const args = getArgs(process.argv)
     // console.log(process.env)
         if (args.h){
-            printHelp()         //вызвать помощь
+            return printHelp()      //вызвать помощь
         }
         if (args.s){
-                   //сохранить город
+            return saveCity(args.s)      //сохранить город
         }
         if (args.t){
             return saveToken(args.t) //сохранить токен
         }
         //вывести погоду
-        getForcast()
+        return getForcast()
 }
-// getWeather('Санкт-Петербург', '89fc46fa491b609d5b0ecaf99169c45f')
-// getWeather('Уфа', '89fc46fa491b609d5b0ecaf99169c45f')
-// getWeather('Пушкин', '89fc46fa491b609d5b0ecaf99169c45f')
-
 
 initCLI()
